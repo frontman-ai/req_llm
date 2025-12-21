@@ -170,7 +170,7 @@ defmodule ReqLLM.MixProject do
       {:uniq, "~> 0.6"},
       {:zoi, "~> 0.10"},
       {:jsv, "~> 0.11"},
-      {:llm_db, github: "agentjido/llm_db", branch: "main", override: true},
+      {:llm_db, "~> 2025.12"},
 
       # Dev/test dependencies
       {:bandit, "~> 1.8", only: :dev, runtime: false},
