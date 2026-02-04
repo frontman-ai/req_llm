@@ -483,11 +483,12 @@ defmodule ReqLLM.Providers.OpenAI.ResponsesAPI do
 
   defp build_request_headers(model, opts) do
     credential = ReqLLM.Auth.resolve!(model, opts)
+    extra = Keyword.get(opts, :extra_headers, [])
 
     [
       {"Authorization", "Bearer " <> credential.token},
       {"Content-Type", "application/json"}
-    ]
+    ] ++ extra
   end
 
   defp build_request_url(opts) do
