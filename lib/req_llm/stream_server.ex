@@ -1097,6 +1097,14 @@ defmodule ReqLLM.StreamServer do
           headers: headers
         )
 
+      # Anthropic returns errors at top level: {"type": "error", "message": "..."}
+      {:ok, %{"message" => message, "type" => _type} = decoded} when is_binary(message) ->
+        ReqLLM.Error.API.Request.exception(
+          reason: message,
+          status: status,
+          response_body: decoded
+        )
+
       {:ok, decoded} ->
         ReqLLM.Error.API.Request.exception(
           reason: "HTTP #{status}",
