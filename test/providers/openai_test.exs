@@ -1295,6 +1295,96 @@ defmodule ReqLLM.Providers.OpenAITest do
     end
   end
 
+  describe "OAuth authentication" do
+    test "ChatAPI attach_stream uses Bearer token with oauth access_token" do
+      {:ok, model} = ReqLLM.model("openai:gpt-4o")
+      context = context_fixture()
+
+      {:ok, finch_request} =
+        ReqLLM.Providers.OpenAI.ChatAPI.attach_stream(
+          model,
+          context,
+          [auth_mode: :oauth, access_token: "test-oauth-token", base_url: "https://api.openai.com/v1"],
+          nil
+        )
+
+      auth_header =
+        Enum.find(finch_request.headers, fn {name, _} ->
+          String.downcase(name) == "authorization"
+        end)
+
+      assert auth_header != nil
+      {_, value} = auth_header
+      assert value == "Bearer test-oauth-token"
+    end
+
+    test "ChatAPI attach_stream uses Bearer token with api_key" do
+      {:ok, model} = ReqLLM.model("openai:gpt-4o")
+      context = context_fixture()
+
+      {:ok, finch_request} =
+        ReqLLM.Providers.OpenAI.ChatAPI.attach_stream(
+          model,
+          context,
+          [api_key: "sk-test-key", base_url: "https://api.openai.com/v1"],
+          nil
+        )
+
+      auth_header =
+        Enum.find(finch_request.headers, fn {name, _} ->
+          String.downcase(name) == "authorization"
+        end)
+
+      assert auth_header != nil
+      {_, value} = auth_header
+      assert value == "Bearer sk-test-key"
+    end
+
+    test "ResponsesAPI attach_stream uses Bearer token with oauth access_token" do
+      {:ok, model} = ReqLLM.model("openai:gpt-5")
+      context = context_fixture()
+
+      {:ok, finch_request} =
+        ReqLLM.Providers.OpenAI.ResponsesAPI.attach_stream(
+          model,
+          context,
+          [auth_mode: :oauth, access_token: "test-oauth-token", base_url: "https://api.openai.com/v1"],
+          nil
+        )
+
+      auth_header =
+        Enum.find(finch_request.headers, fn {name, _} ->
+          String.downcase(name) == "authorization"
+        end)
+
+      assert auth_header != nil
+      {_, value} = auth_header
+      assert value == "Bearer test-oauth-token"
+    end
+
+    test "ResponsesAPI attach_stream uses Bearer token with api_key" do
+      {:ok, model} = ReqLLM.model("openai:gpt-5")
+      context = context_fixture()
+
+      {:ok, finch_request} =
+        ReqLLM.Providers.OpenAI.ResponsesAPI.attach_stream(
+          model,
+          context,
+          [api_key: "sk-test-key", base_url: "https://api.openai.com/v1"],
+          nil
+        )
+
+      auth_header =
+        Enum.find(finch_request.headers, fn {name, _} ->
+          String.downcase(name) == "authorization"
+        end)
+
+      assert auth_header != nil
+      {_, value} = auth_header
+      assert value == "Bearer sk-test-key"
+    end
+  end
+
   describe "ResponsesAPI tool encoding" do
     test "passes through built-in web_search tool definitions" do
       {:ok, model} = ReqLLM.model("openai:gpt-5-nano")
