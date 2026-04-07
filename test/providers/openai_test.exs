@@ -1304,7 +1304,11 @@ defmodule ReqLLM.Providers.OpenAITest do
         ReqLLM.Providers.OpenAI.ChatAPI.attach_stream(
           model,
           context,
-          [auth_mode: :oauth, access_token: "test-oauth-token", base_url: "https://api.openai.com/v1"],
+          [
+            auth_mode: :oauth,
+            access_token: "test-oauth-token",
+            base_url: "https://api.openai.com/v1"
+          ],
           nil
         )
 
@@ -1348,7 +1352,11 @@ defmodule ReqLLM.Providers.OpenAITest do
         ReqLLM.Providers.OpenAI.ResponsesAPI.attach_stream(
           model,
           context,
-          [auth_mode: :oauth, access_token: "test-oauth-token", base_url: "https://api.openai.com/v1"],
+          [
+            auth_mode: :oauth,
+            access_token: "test-oauth-token",
+            base_url: "https://api.openai.com/v1"
+          ],
           nil
         )
 
