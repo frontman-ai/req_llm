@@ -45,3 +45,4 @@ req_llm-*.tar
 
 # playground config
 playground_config.json
+.worktrees/
