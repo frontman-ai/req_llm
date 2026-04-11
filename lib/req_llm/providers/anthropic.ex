@@ -585,7 +585,8 @@ defmodule ReqLLM.Providers.Anthropic do
   # Add OAuth-specific extras for Claude Pro/Max subscription access.
   # When auth_mode is :oauth, Anthropic requires additional headers and URL params.
   defp maybe_add_oauth_extras(request, %{kind: :oauth_access_token}, user_opts) do
-    auth_mode = Keyword.get(user_opts, :auth_mode) || get_in(user_opts, [:provider_options, :auth_mode])
+    auth_mode =
+      Keyword.get(user_opts, :auth_mode) || get_in(user_opts, [:provider_options, :auth_mode])
 
     if auth_mode == :oauth do
       url = request.url
@@ -615,7 +616,8 @@ defmodule ReqLLM.Providers.Anthropic do
 
     beta_features = beta_features ++ provider_betas
 
-    auth_mode = Keyword.get(user_opts, :auth_mode) || get_in(user_opts, [:provider_options, :auth_mode])
+    auth_mode =
+      Keyword.get(user_opts, :auth_mode) || get_in(user_opts, [:provider_options, :auth_mode])
 
     beta_features =
       if auth_mode == :oauth do

@@ -17,7 +17,12 @@ defmodule ReqLLM.Providers.Anthropic.ResponseTest do
       # false stall timeouts during long-thinking requests (issue #731).
       chunks = Response.decode_stream_event(event, model)
 
-      assert [%ReqLLM.StreamChunk{type: :meta, metadata: %{keepalive?: true, provider_event: :ping}}] = chunks
+      assert [
+               %ReqLLM.StreamChunk{
+                 type: :meta,
+                 metadata: %{keepalive?: true, provider_event: :ping}
+               }
+             ] = chunks
     end
 
     test "ping keepalive chunk carries no text or tool call data", %{model: model} do
