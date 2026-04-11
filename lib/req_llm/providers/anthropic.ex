@@ -314,6 +314,7 @@ defmodule ReqLLM.Providers.Anthropic do
     |> put_auth_headers(credential)
     |> Req.Request.put_header("anthropic-version", get_anthropic_version(user_opts))
     |> Req.Request.put_private(:req_llm_model, model)
+    |> maybe_add_oauth_extras(credential, user_opts)
     |> maybe_add_beta_header(user_opts)
     |> Req.Request.merge_options(
       [finch: ReqLLM.Application.finch_name(), model: get_api_model_id(model)] ++ user_opts
@@ -581,6 +582,27 @@ defmodule ReqLLM.Providers.Anthropic do
     Keyword.get(user_opts, :anthropic_version, @default_anthropic_version)
   end
 
+  # Add OAuth-specific extras for Claude Pro/Max subscription access.
+  # When auth_mode is :oauth, Anthropic requires additional headers and URL params.
+  defp maybe_add_oauth_extras(request, %{kind: :oauth_access_token}, user_opts) do
+    auth_mode = Keyword.get(user_opts, :auth_mode) || get_in(user_opts, [:provider_options, :auth_mode])
+
+    if auth_mode == :oauth do
+      url = request.url
+      query = URI.decode_query(url.query || "")
+      new_query = URI.encode_query(Map.put(query, "beta", "true"))
+      new_url = %{url | query: new_query}
+
+      request
+      |> Map.put(:url, new_url)
+      |> Req.Request.put_header("user-agent", "claude-cli/2.1.2 (external, cli)")
+    else
+      request
+    end
+  end
+
+  defp maybe_add_oauth_extras(request, _credential, _user_opts), do: request
+
   defp maybe_add_beta_header(request, user_opts) do
     beta_features = []
 
@@ -592,6 +614,15 @@ defmodule ReqLLM.Providers.Anthropic do
       |> List.wrap()
 
     beta_features = beta_features ++ provider_betas
+
+    auth_mode = Keyword.get(user_opts, :auth_mode) || get_in(user_opts, [:provider_options, :auth_mode])
+
+    beta_features =
+      if auth_mode == :oauth do
+        ["oauth-2025-04-20", "interleaved-thinking-2025-05-14" | beta_features]
+      else
+        beta_features
+      end
 
     beta_features =
       if has_tools?(user_opts) do

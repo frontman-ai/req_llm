@@ -1050,12 +1050,35 @@ defmodule ReqLLM.Providers.OpenAI.ResponsesAPI do
     end)
   end
 
-  # NOTE: find_pending_tool_call_ids/1 and extract_tool_outputs_from_messages/1
-  # were removed. Tool outputs are now encoded inline in build_request_body/4
-  # during the message reduce, ensuring every function_call in the input array
-  # has a matching function_call_output. The previous approach only included
-  # outputs from the most recent tool round, causing "No tool output found"
-  # errors on multi-turn tool calling.
+  # Used when previous_response_id is set, to send only the pending (most recent) tool outputs.
+  defp find_pending_tool_call_ids(messages) do
+    messages
+    |> Enum.reverse()
+    |> Enum.reduce_while([], fn msg, acc ->
+      case msg.role do
+        :tool when is_binary(msg.tool_call_id) ->
+          {:cont, [msg.tool_call_id | acc]}
+
+        :assistant ->
+          {:halt, acc}
+
+        _ ->
+          {:cont, acc}
+      end
+    end)
+  end
+
+  defp extract_tool_outputs_from_messages(tool_messages) do
+    Enum.map(tool_messages, fn msg ->
+      output =
+        case ReqLLM.ToolResult.output_from_message(msg) do
+          nil -> extract_tool_output_text(msg.content)
+          value -> value
+        end
+
+      %{call_id: msg.tool_call_id, output: output}
+    end)
+  end
 
   defp extract_tool_output_text(content_parts) do
     content_parts
