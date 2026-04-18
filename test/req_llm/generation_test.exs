@@ -94,6 +94,9 @@ defmodule ReqLLM.GenerationTest do
   defmodule ObjectStreamHTTP do
   end
 
+  defmodule HeaderHTTP do
+  end
+
   setup do
     # Stub HTTP responses for testing
     Req.Test.stub(ReqLLM.GenerationTest, fn conn ->
@@ -797,6 +800,37 @@ defmodule ReqLLM.GenerationTest do
           req_http_options: [method: :invalid_method]
         )
       end
+    end
+
+    test "forwards custom headers from req_http_options" do
+      custom_header = "req-#{System.unique_integer([:positive])}"
+
+      Req.Test.stub(HeaderHTTP, fn conn ->
+        assert Plug.Conn.get_req_header(conn, "x-test-header") == [custom_header]
+
+        Req.Test.json(conn, %{
+          "id" => "cmpl_test_123",
+          "model" => "gpt-4-turbo",
+          "choices" => [
+            %{
+              "message" => %{"role" => "assistant", "content" => "Response"}
+            }
+          ],
+          "usage" => %{"prompt_tokens" => 10, "completion_tokens" => 5, "total_tokens" => 15}
+        })
+      end)
+
+      {:ok, response} =
+        Generation.generate_text(
+          @chat_model,
+          "Hello",
+          req_http_options: [
+            headers: [{"X-Test-Header", custom_header}],
+            plug: {Req.Test, HeaderHTTP}
+          ]
+        )
+
+      assert %Response{} = response
     end
   end
 
