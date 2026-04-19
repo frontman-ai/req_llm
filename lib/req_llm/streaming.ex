@@ -314,32 +314,26 @@ defmodule ReqLLM.Streaming do
   # Create lazy stream using Stream.resource that calls StreamServer.next/2
   defp create_lazy_stream(server_pid, timeout) do
     Stream.resource(
-      fn -> server_pid end,
-      fn
-        {:halted, _} ->
-          {:halt, :done}
+      fn -> %{server: server_pid, exhausted?: false} end,
+      fn %{server: server} = state ->
+        case StreamServer.next(server, timeout) do
+          {:ok, chunk} ->
+            {[chunk], state}
 
-        server ->
-          case StreamServer.next(server, timeout) do
-            {:ok, chunk} ->
-              {[chunk], server}
+          :halt ->
+            {:halt, %{state | exhausted?: true}}
 
-            :halt ->
-              {:halt, server}
-
-            {:error, reason} ->
-              Logger.error("Stream error: #{inspect(reason)}")
-
-              error_chunk =
-                ReqLLM.StreamChunk.error(format_error_reason(reason), %{error: reason})
-
-              {[error_chunk], {:halted, server}}
-          end
+          {:error, reason} ->
+            raise %ReqLLM.Error.API.Stream{
+              reason: "Stream failed: #{inspect(reason)}",
+              cause: reason
+            }
+        end
       end,
-      fn
-        {:halted, server} -> safe_cancel_stream_server(server)
-        :done -> :ok
-        server -> safe_cancel_stream_server(server)
+      fn %{server: server, exhausted?: exhausted?} ->
+        if not exhausted? do
+          safe_cancel_stream_server(server)
+        end
       end
     )
   end
@@ -356,11 +350,6 @@ defmodule ReqLLM.Streaming do
     :exit, {:shutdown, _} -> :ok
     :exit, {{:shutdown, _}, _} -> :ok
   end
-
-  defp format_error_reason(%{reason: reason}) when is_binary(reason), do: reason
-  defp format_error_reason(%{message: message}) when is_binary(message), do: message
-  defp format_error_reason(reason) when is_binary(reason), do: reason
-  defp format_error_reason(reason), do: inspect(reason)
 
   defp start_metadata_handle(server_pid, opts) do
     default_metadata_timeout = Application.get_env(:req_llm, :metadata_timeout, 300_000)
